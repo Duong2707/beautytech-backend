@@ -12,6 +12,8 @@ const app = express();
 // Middleware
 app.use(cors());
 app.use(express.json());
+app.use('/api/users', require('./routes/userRoutes'));
+
 
 // Kết nối database
 connectDB();
@@ -28,6 +30,29 @@ app.use('/api/skin', skinRoutes);
 // Product routes
 const productRoutes = require('./routes/productRoutes');
 app.use('/api/products', productRoutes);
+
+const addressRoutes = require('./routes/addressRoutes');
+app.use('/api/addresses', addressRoutes);
+
+app.use('/api/notifications', require('./routes/notificationRoutes'));
+
+// Cart routes
+const cartRoutes = require('./routes/cartRoutes');
+app.use('/api/cart', cartRoutes);
+
+const skinDiaryRoutes = require('./routes/skinDiaryRoutes');
+app.use('/api/skin-diary', skinDiaryRoutes);
+
+// 👇 KHAI BÁO ROUTE ORDER Ở ĐÂY
+const orderRoutes = require('./routes/orderRoutes');
+app.use('/api/orders', orderRoutes);
+
+// Route thanh toán (SePay Webhook)
+app.use('/api/payment', require('./routes/paymentRoutes'));
+
+// 🌟 THÊM ROUTE VOUCHER Ở ĐÂY
+const voucherRoutes = require('./routes/voucherRoutes'); // 👇 THÊM DÒNG NÀY
+app.use('/api/vouchers', voucherRoutes); // 👇 THÊM DÒNG NÀY
 
 // Route test
 app.get('/', (req, res) => {

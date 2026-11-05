@@ -5,7 +5,8 @@ const Product = require('../models/Product');
 // @access  Public
 const getAllProducts = async (req, res) => {
   try {
-    const { category, skinType, concern, minPrice, maxPrice, limit = 50 } = req.query;
+    // ĐÃ SỬA: Tăng limit mặc định lên 1000 để lấy đủ 100 sản phẩm
+    const { category, skinType, concern, minPrice, maxPrice, limit = 1000 } = req.query;
 
     const filter = {};
     if (category) filter.category = category;

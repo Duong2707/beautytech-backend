@@ -4,14 +4,14 @@ const userSchema = new mongoose.Schema(
   {
     email: {
       type: String,
-      required: [true, 'Email là bắt buộc'],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
     },
     password: {
       type: String,
-      default: '', // Cho phép rỗng với user social (Google/Facebook)
+      required: false, // Có thể rỗng nếu đăng nhập bằng Google/Facebook
     },
     fullName: {
       type: String,
@@ -21,6 +21,17 @@ const userSchema = new mongoose.Schema(
     phone: {
       type: String,
       default: '',
+      trim: true,
+    },
+    address: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
     },
     avatar: {
       type: String,
@@ -28,21 +39,12 @@ const userSchema = new mongoose.Schema(
     },
     googleId: {
       type: String,
-      default: '',
     },
     facebookId: {
       type: String,
-      default: '',
-    },
-    role: {
-      type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model('User', userSchema);
