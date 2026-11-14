@@ -10,7 +10,11 @@ const connectDB = require('./config/db');
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: '*',
+  allowedHeaders: ['Content-Type', 'Authorization']
+}
+));
 app.use(express.json());
 app.use('/api/users', require('./routes/userRoutes'));
 

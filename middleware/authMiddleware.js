@@ -29,8 +29,7 @@ exports.protect = async (req, res, next) => {
 
       // Gắn thông tin vào req.user để các Controller phía sau sử dụng
       req.user = account;
-
-      next(); // Cho phép đi tiếp vào Controller
+      return next(); 
     } catch (error) {
       console.error(error);
       return res.status(401).json({ message: 'Không có quyền truy cập, token không hợp lệ' });
