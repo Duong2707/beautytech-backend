@@ -15,20 +15,16 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-// 2. Lấy danh sách đơn hàng (Đã sửa cho Admin)
+// 2. Lấy danh sách đơn hàng
 exports.getUserOrders = async (req, res) => {
   try {
     let orders;
-    
-    // 🌟 Nếu là Admin thì lấy TẤT CẢ đơn hàng
     if (req.user.role === 'admin') {
       orders = await Order.find({}).sort({ createdAt: -1 });
     } else {
-      // 🌟 Nếu là Khách hàng thì chỉ lấy đơn của chính họ
       const userId = req.user._id; 
       orders = await Order.find({ userId }).sort({ createdAt: -1 });
     }
-    
     res.json({ success: true, data: orders });
   } catch (error) {
     console.error("Lỗi lấy danh sách đơn hàng:", error);
@@ -36,15 +32,12 @@ exports.getUserOrders = async (req, res) => {
   }
 };
 
-// 3. Hủy đơn hàng (Đã sửa để Admin cũng hủy được)
+// 3. Khách hàng yêu cầu hủy đơn
 exports.cancelOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
     
-    // Tạo query tìm kiếm cơ bản
     let query = { orderId };
-
-    // Nếu không phải Admin, chỉ được phép tìm đơn của chính mình
     if (req.user.role !== 'admin') {
       query.userId = req.user._id;
     }
@@ -58,9 +51,16 @@ exports.cancelOrder = async (req, res) => {
       return res.status(400).json({ success: false, message: "Không thể hủy đơn hàng ở trạng thái này" });
     }
 
-    order.orderStatus = 'cancelled';
-    await order.save();
+    // 🌟 LOGIC MỚI: Phân biệt đã thanh toán hay chưa
+    if (order.paymentStatus === 'paid') {
+      // Đã chuyển khoản -> Chờ Admin xử lý hoàn tiền
+      order.orderStatus = 'cancel_requested';
+    } else {
+      // COD hoặc chưa chuyển khoản -> Hủy luôn
+      order.orderStatus = 'cancelled';
+    }
 
+    await order.save();
     res.json({ success: true, data: order });
   } catch (error) {
     console.error("Lỗi hủy đơn:", error);
@@ -68,7 +68,7 @@ exports.cancelOrder = async (req, res) => {
   }
 };
 
-// 4. Cập nhật trạng thái (Giả lập - Admin dùng cái này)
+// 4. Cập nhật trạng thái (Admin duyệt đơn, giao hàng...)
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -115,6 +115,42 @@ exports.submitReview = async (req, res) => {
     if (!updatedOrder) return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
     res.json({ success: true, data: updatedOrder });
   } catch (error) {
+    res.status(500).json({ success: false, message: "Lỗi server" });
+  }
+};
+
+// 6. 🌟 ADMIN XÁC NHẬN ĐÃ HOÀN TIỀN
+exports.confirmRefund = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const order = await Order.findOne({ orderId });
+
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Không tìm thấy đơn hàng" });
+    }
+
+    if (order.orderStatus !== 'cancel_requested') {
+      return res.status(400).json({ success: false, message: "Đơn hàng không ở trạng thái yêu cầu hủy" });
+    }
+
+    // Chốt trạng thái: Đã hủy hoàn toàn và Đã hoàn tiền
+    order.orderStatus = 'cancelled';
+    order.paymentStatus = 'refunded';
+    await order.save();
+
+    // Gửi thông báo cho khách hàng
+    if (order.userId) {
+      await Notification.create({
+        title: 'Hủy đơn & Hoàn tiền thành công',
+        content: `Đơn hàng #${orderId} đã được hủy và hoàn tiền vào tài khoản của bạn.`,
+        type: 'order',
+        userId: order.userId
+      });
+    }
+
+    res.json({ success: true, message: "Xác nhận hoàn tiền thành công", data: order });
+  } catch (error) {
+    console.error("Lỗi xác nhận hoàn tiền:", error);
     res.status(500).json({ success: false, message: "Lỗi server" });
   }
 };

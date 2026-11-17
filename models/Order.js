@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const orderSchema = new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false }, // Tạm thời để false để dễ test
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false }, 
   orderId: { type: String, required: true, unique: true }, 
   recipientName: String,
   phone: String,
@@ -21,8 +21,20 @@ const orderSchema = new mongoose.Schema({
   discount: Number,
   total: Number,
   paymentMethod: { type: String, enum: ['cod', 'qr'] },
-  paymentStatus: { type: String, enum: ['unpaid', 'pending', 'paid'], default: 'unpaid' },
-  orderStatus: { type: String, default: 'pending' },
+  
+  // 🌟 CẬP NHẬT: Thêm 'refunded' vào enum
+  paymentStatus: { 
+    type: String, 
+    enum: ['unpaid', 'pending', 'paid', 'refunded'], 
+    default: 'unpaid' 
+  },
+  
+  // 🌟 CẬP NHẬT: Thêm enum cho orderStatus và trạng thái 'cancel_requested'
+  orderStatus: { 
+    type: String, 
+    enum: ['pending', 'confirmed', 'shipping', 'delivered', 'reviewed', 'cancelled', 'cancel_requested'], 
+    default: 'pending' 
+  },
   
   // Trường lưu đánh giá
   rating: { type: Number, default: 0 },
