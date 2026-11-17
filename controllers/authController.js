@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const Admin = require('../models/Admin'); // 🌟 THÊM DÒNG NÀY ĐỂ IMPORT BẢNG ADMIN
+const Admin = require('../models/Admin'); 
 const OtpToken = require('../models/OtpToken');
 const { sendOtpEmail } = require('../services/emailService');
 const admin = require('../config/firebaseAdmin');
@@ -59,6 +59,10 @@ const register = async (req, res) => {
         address: user.address,
         role: user.role,
         avatar: user.avatar,
+        // 🌟 Thêm thông tin ngân hàng
+        bankName: user.bankName || '',
+        bankAccountNumber: user.bankAccountNumber || '',
+        bankAccountName: user.bankAccountName || '',
         token,
       },
     });
@@ -77,7 +81,6 @@ const register = async (req, res) => {
 // @access  Public
 const login = async (req, res) => {
   try {
-    // 🌟 Nhận thêm isAdminMode từ Frontend
     const { email, password, isAdminMode } = req.body;
 
     if (!email || !password) {
@@ -90,23 +93,18 @@ const login = async (req, res) => {
     let account = null;
     let isAdminAccount = false;
 
-    // 🌟 LOGIC TÌM KIẾM TÀI KHOẢN
     if (isAdminMode) {
-      // Chế độ Quản trị: Chỉ tìm trong bảng Admin
       account = await Admin.findOne({ email });
       if (account) isAdminAccount = true;
     } else {
-      // Chế độ Khách hàng: Tìm trong bảng User trước
       account = await User.findOne({ email });
       
-      // Nếu không có trong User, tìm tiếp trong bảng Admin
       if (!account) {
         account = await Admin.findOne({ email });
         if (account) isAdminAccount = true;
       }
     }
 
-    // Kiểm tra tài khoản có tồn tại không
     if (!account) {
       return res.status(401).json({
         success: false,
@@ -114,7 +112,6 @@ const login = async (req, res) => {
       });
     }
 
-    // Kiểm tra mật khẩu
     const isMatch = await bcrypt.compare(password, account.password);
     if (!isMatch) {
       return res.status(401).json({
@@ -123,10 +120,8 @@ const login = async (req, res) => {
       });
     }
 
-    // Tạo token
     const token = generateToken(account._id);
 
-    // Trả về dữ liệu (Gán cứng role admin nếu đăng nhập từ bảng Admin)
     res.status(200).json({
       success: true,
       message: 'Đăng nhập thành công',
@@ -138,6 +133,10 @@ const login = async (req, res) => {
         address: account.address || '',
         role: isAdminAccount ? 'admin' : (account.role || 'user'),
         avatar: account.avatar || '',
+        // 🌟 Thêm thông tin ngân hàng
+        bankName: account.bankName || '',
+        bankAccountNumber: account.bankAccountNumber || '',
+        bankAccountName: account.bankAccountName || '',
         token,
       },
     });
@@ -153,13 +152,11 @@ const login = async (req, res) => {
 
 // @desc    Lấy thông tin user hiện tại
 // @route   GET /api/auth/me
-// @access  Private (cần token)
+// @access  Private
 const getMe = async (req, res) => {
   try {
-    // Thử tìm trong User trước
     let account = await User.findById(req.userId).select('-password');
     
-    // Nếu không thấy, thử tìm trong Admin
     if (!account) {
       account = await Admin.findById(req.userId).select('-password');
     }
@@ -376,6 +373,9 @@ const firebaseLogin = async (req, res) => {
         address: user.address,
         role: user.role,
         avatar: user.avatar,
+        bankName: user.bankName || '',
+        bankAccountNumber: user.bankAccountNumber || '',
+        bankAccountName: user.bankAccountName || '',
         token,
       },
     });
@@ -470,6 +470,9 @@ const facebookLogin = async (req, res) => {
         address: user.address,
         role: user.role,
         avatar: user.avatar,
+        bankName: user.bankName || '',
+        bankAccountNumber: user.bankAccountNumber || '',
+        bankAccountName: user.bankAccountName || '',
         token,
       },
     });
@@ -487,7 +490,7 @@ const facebookLogin = async (req, res) => {
   }
 };
 
-// @desc    Cập nhật thông tin cá nhân (Tên, SĐT, Địa chỉ, Email, Mật khẩu)
+// @desc    Cập nhật thông tin cá nhân (Tên, SĐT, Địa chỉ, Email, Mật khẩu, Ngân hàng)
 // @route   PUT /api/auth/profile
 // @access  Private
 const updateProfile = async (req, res) => {
@@ -499,11 +502,21 @@ const updateProfile = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
     }
 
-    const { fullName, phone, address, newEmail, currentPassword, newPassword } = req.body;
+    // 🌟 Nhận thêm thông tin ngân hàng
+    const { 
+      fullName, phone, address, 
+      newEmail, currentPassword, newPassword,
+      bankName, bankAccountNumber, bankAccountName
+    } = req.body;
 
     if (fullName) user.fullName = fullName;
     if (phone) user.phone = phone;
     if (address !== undefined) user.address = address; 
+    
+    // 🌟 Cập nhật thông tin ngân hàng
+    if (bankName !== undefined) user.bankName = bankName;
+    if (bankAccountNumber !== undefined) user.bankAccountNumber = bankAccountNumber;
+    if (bankAccountName !== undefined) user.bankAccountName = bankAccountName;
 
     const isChangingEmail = newEmail && newEmail !== user.email;
     const isChangingPassword = newPassword && newPassword.trim() !== '';
@@ -541,7 +554,11 @@ const updateProfile = async (req, res) => {
         phone: updatedUser.phone,
         address: updatedUser.address,
         role: updatedUser.role,
-        avatar: updatedUser.avatar
+        avatar: updatedUser.avatar,
+        // 🌟 Trả về thông tin ngân hàng
+        bankName: updatedUser.bankName,
+        bankAccountNumber: updatedUser.bankAccountNumber,
+        bankAccountName: updatedUser.bankAccountName
       }
     });
 

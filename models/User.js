@@ -43,6 +43,23 @@ const userSchema = new mongoose.Schema(
     facebookId: {
       type: String,
     },
+    
+    // 🌟 THÊM 3 TRƯỜNG THÔNG TIN NGÂN HÀNG ĐỂ HOÀN TIỀN
+    bankName: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    bankAccountNumber: {
+      type: String,
+      default: '',
+      trim: true,
+    },
+    bankAccountName: {
+      type: String,
+      default: '',
+      trim: true,
+    }
   },
   { timestamps: true }
 );

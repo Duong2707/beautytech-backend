@@ -20,10 +20,16 @@ exports.getUserOrders = async (req, res) => {
   try {
     let orders;
     if (req.user.role === 'admin') {
-      orders = await Order.find({}).sort({ createdAt: -1 });
+      // 🌟 ADMIN: Lấy toàn bộ đơn, POPULATE lấy thông tin ngân hàng của user
+      orders = await Order.find({})
+        .populate('userId', 'fullName phone bankName bankAccountNumber bankAccountName')
+        .sort({ createdAt: -1 });
     } else {
+      // 🌟 KHÁCH HÀNG: Lấy đơn của chính họ, có thể populate cơ bản
       const userId = req.user._id; 
-      orders = await Order.find({ userId }).sort({ createdAt: -1 });
+      orders = await Order.find({ userId })
+        .populate('userId', 'fullName phone')
+        .sort({ createdAt: -1 });
     }
     res.json({ success: true, data: orders });
   } catch (error) {
