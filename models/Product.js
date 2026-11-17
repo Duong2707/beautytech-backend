@@ -17,7 +17,12 @@ const productSchema = new mongoose.Schema(
     ingredients: { type: [String], default: [] },
     skinTypes: { type: [String], default: [] },
     concerns: { type: [String], default: [] },
-    sizes: { type: [String], default: ['Mặc định'] }, // Trường mới thêm
+    sizes: [
+      {
+        size: { type: String, required: true }, // VD: "30ml"
+        price: { type: Number, required: true } // VD: 150000
+      }
+    ],
     stock: { type: Number, default: 100 },
     rating: { type: Number, default: 5, min: 0, max: 5 },
     sold: { type: Number, default: 0 },
